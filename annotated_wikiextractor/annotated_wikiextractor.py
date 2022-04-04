@@ -56,7 +56,7 @@ import wikiextractor
 
 prefix = 'http://en.wikipedia.org/wiki/'
 number_of_workers = 4
-keep_anchors = False
+keep_anchors = True
 
 """
 An extention of a WikiDocument, which also contains the annotations
@@ -109,7 +109,7 @@ class AnnotatedWikiExtractor (wikiextractor.WikiExtractor):
         ms = re.finditer('<a href="([^"]+)">([^>]+)</a>', wiki_document.text)
         
         for m in ms:              
-            if urllib.quote("#") not in m.group(1) or keep_anchors:
+            if urllib.parse.quote("#") not in m.group(1) or keep_anchors:
                 annotations.append({
                     "uri"    :   m.group(1), 
                     "surface_form" :   m.group(2), 
@@ -129,42 +129,69 @@ class AnnotatedWikiExtractor (wikiextractor.WikiExtractor):
         return annotated_wiki_document
 
 def process_page(page):
+    wiki_extractor = AnnotatedWikiExtractor()
     wiki_document = wikiextractor.extract_document(page)
-    if not wiki_document: return
+    if not wiki_document:
+        return {}
 
     wiki_document = wiki_extractor.extract(wiki_document)
-    if not wiki_document: return
+    if not wiki_document:
+        return {}
 
-    return wiki_document.__str__().encode('utf-8')
+    line_dic = {}
+    # print('==========>', wiki_document)
+    id = wiki_document['id']
+    url = wiki_document['url']
+    text = wiki_document['text']
+    annot = wiki_document['annotations']
+
+    line_dic["id"] = id
+    line_dic["url"] = url
+    line_dic["text"] = text
+    line_dic["annotations"] = annot
+
+    return line_dic
 
 
-def process_data(input_file, wiki_extractor, output_splitter):
+def process_data(input_file, output_splitter):
     
     # Set up pool of worker processes
     pool = Pool(processes=number_of_workers)
     
     pages = []    
     page = []
-    
-    for line in input_file:
-        line = line.decode('utf-8').strip()
-        if line == '<page>':
-            page = []
-        elif line == '</page>':
-            if len(pages) < 10000 :
-                pages.append(page)
+    with open(input_file, encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if line == '<page>':
+                page = []
+            elif line == '</page>':
+                if len(pages) < 10000 :
+                    pages.append(page)
+                else:
+                    t = pool.map(process_page, pages)
+                    # for x in pages:
+                    #     y = process_page(x)
+                    #     print(y)
+                    for y in t:
+                        output_splitter.write(y)
+                    pages = []
             else:
-                map((lambda x: output_splitter.write(x) if x is not None else None), pool.map(process_page, pages))
-                pages = []
-        else:
-            page.append(line)
+                page.append(line)
 
     if len(pages) > 0:
-        map((lambda x: output_splitter.write(x) if x is not None else None), pool.map(process_page, pages))
+        t = pool.map(process_page, pages)
+        # for x in pages:
+        #     y = process_page(x)
+        #     print(y)
+        for y in t:
+            output_splitter.write(y)
+
 
 
 def main():
     script_name = os.path.basename(sys.argv[0])
+    script_name = 'G:\D\MSRA\knowledge_aware\knowledge_resource\wikipedia\enwiki-latest-pages-articles.xml'
 
     try:
         long_opts = ['help', 'usage', 'compress', 'bytes=', 'output=', 'keep-anchors']
@@ -213,9 +240,9 @@ def main():
         wikiextractor.show_suggestion(sys.stderr, script_name)
         sys.exit(4)
 
-    wiki_extractor = AnnotatedWikiExtractor()
+    # wiki_extractor = AnnotatedWikiExtractor()
     output_splitter = wikiextractor.OutputSplitter(compress, file_size, output_dir)
-    process_data(sys.stdin, wiki_extractor, output_splitter)
+    process_data(script_name, output_splitter)
 
     output_splitter.close()
 

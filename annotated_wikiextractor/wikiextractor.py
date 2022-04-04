@@ -38,11 +38,11 @@ Options:
   --help                : display this help and exit
   --usage               : display script usage
 """
-
+import json
 import sys
 import getopt
 import pickle
-import urllib
+import urllib.parse
 import re
 import bz2
 import os.path
@@ -63,7 +63,7 @@ class WikiDocument:
         return '<doc id="%d" url="%s">\n%s\n</doc>\n' % (self.id, self.url, self.text)
 
 def get_wiki_document_url(wiki_document_title, prefix):
-    quoted_title = urllib.quote(wiki_document_title.replace(' ', '_').encode('utf-8'))
+    quoted_title = urllib.parse.quote(wiki_document_title.replace(' ', '_').encode('utf-8'))
     quoted_title = quoted_title.replace('%28', '(').replace('%29', ')')
     return prefix + quoted_title[0].upper() + quoted_title[1:]
 
@@ -193,7 +193,7 @@ class WikiExtractor:
 
         # Riconosce i tag HTML segnaposto
         self.__placeholder_tag_patterns = list()
-        for tag in self.__class__.__placeholder_tags.iterkeys():
+        for tag in self.__class__.__placeholder_tags:#.iterkeys():
             pattern = re.compile(r'<\s*%s(\s*| [^/]+?)>.*?<\s*/\s*%s\s*>' % (tag, tag), re.DOTALL | re.IGNORECASE)
             self.__placeholder_tag_patterns.append((pattern, self.__class__.__placeholder_tags[tag]))
 
@@ -306,7 +306,7 @@ class WikiExtractor:
 
         # Gestisce i caratteri speciali
         wiki_document.text = wiki_document.text.replace('&amp;', '&').replace('&quot;&quot;', '&quot;')
-        for entity in self.__class__.__char_entities.iterkeys():
+        for entity in self.__class__.__char_entities: #.iterkeys():
             wiki_document.text = wiki_document.text.replace(entity, self.__class__.__char_entities[entity])
 
         # Gestisce i caratteri speciali
@@ -415,7 +415,7 @@ class WikiExtractor:
     def __handle_unicode(self, entity):
         numeric_code = int(entity[2:-1])
         if numeric_code >= 0x10000: return ''
-        return unichr(numeric_code)
+        return chr(numeric_code)
 
 #------------------------------------------------------------------------------
 
@@ -435,7 +435,8 @@ class OutputSplitter:
             self.__close_cur_file()
             self.__out_file = self.__open_next_file()
             self.__cur_file_size = 0
-        self.__out_file.write(text)
+        json.dump(text, self.__out_file)
+        self.__out_file.write('\n')
         self.__cur_file_size += text_len
 
     def close(self):
@@ -453,7 +454,7 @@ class OutputSplitter:
         if self.__compress:
             return bz2.BZ2File('%s.bz2' % file_name, 'w')
         else:
-            return open(file_name, 'w')
+            return open(file_name, 'w', encoding='utf-8')
 
     def __close_cur_file(self):
         self.__out_file.close()
@@ -461,7 +462,7 @@ class OutputSplitter:
     def __get_dir_name(self):
         char1 = self.__dir_index % 26
         char2 = self.__dir_index / 26 % 26
-        return os.path.join(self.__path_name, '%c%c' % (ord('A') + char2, ord('A') + char1))
+        return os.path.join(self.__path_name, '%c%c' % (ord('A') + int(char2), ord('A') + char1))
 
     def __get_file_name(self):
         return 'wiki%02d' % self.__file_index
