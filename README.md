@@ -1,36 +1,27 @@
-# A Wikipedia Plain Text Extractor with Link Annotations (mentions/anchors and their positions)
+# A Wikipedia Plain Text Extractor with Link Annotations 
+## (mentions/anchors and their positions)  
 
-This project is a simple wrapper around the Wikipedia Extractor by [Medialab](http://medialab.di.unipi.it/wiki/Wikipedia_Extractor). It generates a JSON object for each article. The JSON object contains the id, title and plain text of the article, as well as annotations of article links in the text.
+This project is a simple wrapper around the Wikipedia Extractor by [Medialab](http://medialab.di.unipi.it/wiki/Wikipedia_Extractor).  
+It generates a `JSON` object for each article. The JSON object contains the `id, title and plain text of the article, as well as annotations of article links in the text`.
 
 We fork and modify this project to get a pre-training corpus from the Wikipedia dump
 
 # 1. Input 
->  The input to be pre-processed is `enwiki-latest-pages-articles.xml.bz2`, which can be downloaded from [this](https://dumps.wikimedia.org/enwiki/20220301/enwiki-20220301-pages-articles.xml.bz2) or [this](https://dumps.wikimedia.org/enwiki/)
+>  The input to be pre-processed is Wikipedia dump `enwiki-latest-pages-articles.xml.bz2`, which can be downloaded from [this](https://dumps.wikimedia.org/enwiki/20220301/enwiki-20220301-pages-articles.xml.bz2) or [this](https://dumps.wikimedia.org/enwiki/)
 
 
 # 2. Usage
 
-The extractor can be run from the Terminal or on a Hadoop MapReduce cluster (*removed*).
+2.1 Unzip the Wikipedia dump to `enwiki-latest-pages-articles.xml` (about 81.5 GB)   
+2.2 Convert the whole Wikipedia dump to plain text, use the following command:
 
-2.1 To convert the whole Wikipedia Dump to plain text, use the following command:
+	python annotated_wikiextractor.py -o extracted/
+2.3 All options
 
-	bzip2 -dc enwiki-20110115-pages-articles.xml.bz2 | python annotated_wikiextractor.py -o extracted/
-
-2.1 If you want the output files to be compressed, use the -c option:
-
-	bzip2 -dc enwiki-20110115-pages-articles.xml.bz2 | python annotated_wikiextractor.py -co extracted/
-
-2.2 As this is only an extention of the orgininal [WikiExtractor](https://github.com/attardi/wikiextractor), the usage is more or less the same.
-
-	$ python annotated_wikiextractor.py --help
-	Annotated Wikipedia Extractor:
-	Extracts and cleans text from Wikipedia database dump and stores output in a
-	number of files of similar size in a given directory. Each file contains
-	several documents in JSON format (one document per line) with additional
-	annotations for the links in the article.
-
-	Usage:
+	$ Usage:
 	  annotated_wikiextractor.py [options]
+
+    python annotated_wikiextractor.py --help
 
 	Options:
 	  -k, --keep-anchors    : do not drop annotations for anchor links (e.g. Anarchism#gender)
